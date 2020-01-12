@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <random>
 #define DONTOPT __asm__ __volatile__("")
 
 struct CompileOptions {
@@ -279,11 +280,17 @@ std::optional<Result> compare(
 
 	// write(first_process.in, "400\n", 4);
 	// write(second_process.in, "400\n", 4);
-	for(int iter = 0; iter < 400; iter++) {
+
+	const int iter_min = 200, iter_max = 500; //temp val
+	std::mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+	std::uniform_int_distribution<int> rand_gen(iter_min, iter_max);
+	int iter_limit = rand_gen(rng);
+
+	for(int iter = 0; iter < iter_limit; iter++) {
 		int first_choice = receive_int(first_process);
 		int second_choice = receive_int(second_process);
 
-		if(iter < 400 - 1) {
+		if(iter < iter_limit - 1) {
 			send_int(first_process, second_choice);
 			send_int(second_process, first_choice);
 		}

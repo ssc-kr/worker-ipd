@@ -7,6 +7,7 @@
 #include <functional>
 #include <unistd.h>
 #include <signal.h>
+#include <random>
 
 struct CompileOptions {
 	std::string input_file_name;
@@ -260,13 +261,19 @@ std::optional<Result> compare(
 
 	// write(first_process.in, "400\n", 4);
 	// write(second_process.in, "400\n", 4);
-	for(int iter = 0; iter < 400; iter++) {
+
+	const int iter_min = 200, iter_max = 500; //temp val
+	std::mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+	std::uniform_int_distribution<int> rand_gen(iter_min, iter_max);
+	int iter_limit = rand_gen(rng);
+
+	for(int iter = 0; iter < iter_limit; iter++) {
 		char first_choice, second_choice;
 
 		read(first_process.out, &first_choice, 1);
 		read(second_process.out, &second_choice, 1);
 
-		if(iter < 400 - 1) {
+		if(iter < iter_limit - 1) {
 			write(first_process.in, &first_choice, 1);
 			write(second_process.in, &second_choice, 1);
 		}
