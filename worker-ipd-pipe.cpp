@@ -1,13 +1,14 @@
 #include <iostream>
-#include <stdexcept>
 #include <fstream>
 #include <filesystem>
+#include <stdexcept>
 #include <map>
 #include <string>
+#include <chrono>
+#include <random>
 #include <functional>
 #include <unistd.h>
 #include <signal.h>
-#include <random>
 
 struct CompileOptions {
 	std::string input_file_name;
@@ -168,8 +169,8 @@ void create(
 	const std::string& content
 ) {
 	const auto path = source_directory / strategy_name;
-	if(!std::filesystem::exists(path)) {
-		if(!std::filesystem::create_directories(path)) {
+	if (!std::filesystem::exists(path)) {
+		if (!std::filesystem::create_directories(path)) {
 			throw std::runtime_error("Failed to create directories!");
 		}
 	}
@@ -188,7 +189,7 @@ std::optional<std::string> compile(
 
 	const auto compilation_command = options.get_compilation_command(input_path, output_path) + " 2>&1";
 	const auto compile_fp = popen(compilation_command.data(), "r");
-	if(!compile_fp) {
+	if (!compile_fp) {
 		throw std::runtime_error("Failed to popen!");
 	}
 
@@ -197,7 +198,7 @@ std::optional<std::string> compile(
 	compile_message[read_bytes] = 0;
 	pclose(compile_fp);
 
-	if(!std::filesystem::exists(output_path)) {
+	if (!std::filesystem::exists(output_path)) {
 		return std::nullopt;
 	}
 	return options.get_execution_command(output_path);
@@ -207,22 +208,22 @@ Process execute(const std::string& command) {
 	const auto execution_command = command;
 
 	int in[2], out[2];
-	if(pipe(in) < 0) {
+	if (pipe(in) < 0) {
 		throw std::runtime_error("Failed to create pipe! (in)");
 	}
-	if(pipe(out) < 0) {
+	if (pipe(out) < 0) {
 		close(in[0]);
 		close(in[1]);
 		throw std::runtime_error("Failed to create pipe! (out)");
 	}
 
 	const auto pid = fork();
-	if(pid > 0) {
+	if (pid > 0) {
 		close(in[0]);
 		close(out[1]);
 		return { pid, in[1], out[0] };
 	}
-	else if(pid == 0) {
+	else if (pid == 0) {
 		close(in[1]);
 		close(out[0]);
 		dup2(in[0], 0);
@@ -263,17 +264,17 @@ std::optional<Result> compare(
 	// write(second_process.in, "400\n", 4);
 
 	const int iter_min = 200, iter_max = 500; //temp val
-	std::mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+	std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 	std::uniform_int_distribution<int> rand_gen(iter_min, iter_max);
 	int iter_limit = rand_gen(rng);
 
-	for(int iter = 0; iter < iter_limit; iter++) {
+	for (int iter = 0; iter < iter_limit; iter++) {
 		char first_choice, second_choice;
 
 		read(first_process.out, &first_choice, 1);
 		read(second_process.out, &second_choice, 1);
 
-		if(iter < iter_limit - 1) {
+		if (iter < iter_limit - 1) {
 			write(first_process.in, &first_choice, 1);
 			write(second_process.in, &second_choice, 1);
 		}
@@ -285,7 +286,7 @@ std::optional<Result> compare(
 		first_choice -= '0';
 		second_choice -= '0';
 
-		if(check(first_choice) || check(second_choice)) {
+		if (check(first_choice) || check(second_choice)) {
 			first_score = second_score = 0;
 			break;
 		}
@@ -309,10 +310,10 @@ bool edit(
 
 	const auto& options = compile_options.at(lang);
 	create(strategy_name, options.input_file_name, content);
-	if(const auto command = compile(strategy_name, options)) {
-		for(int count = 0; count < 500; count++) {
-			if(count % 50 == 0) std::cout << count << std::endl;
-			if(!compare(*command, *command)) {
+	if (const auto command = compile(strategy_name, options)) {
+		for (int count = 0; count < 500; count++) {
+			if (count % 50 == 0) std::cout << count << std::endl;
+			if (!compare(*command, *command)) {
 				std::cout << "Comparison error!" << std::endl;
 				exit(-1);
 			}
@@ -320,7 +321,7 @@ bool edit(
 		return false;
 
 		/*
-		if(compare(*command, *command)) {
+		if (compare(*command, *command)) {
 			// success
 			return false;
 		}
@@ -352,8 +353,8 @@ int main() {
 			while(--N) putchar(getchar());
 		})tft";
 
-	if(!std::filesystem::exists(sandbox_directory)) {
-		if(!std::filesystem::create_directories(sandbox_directory)) {
+	if (!std::filesystem::exists(sandbox_directory)) {
+		if (!std::filesystem::create_directories(sandbox_directory)) {
 			throw std::runtime_error("Failed to create directories!");
 		}
 	}
@@ -362,15 +363,15 @@ int main() {
 	std::cout << "Good!" << std::endl;
 
 	/*
-	if(!edit("c_hello", "c", "main(){puts(\"Hello\");}")) {
+	if (!edit("c_hello", "c", "main(){puts(\"Hello\");}")) {
 		std::cout << "OK hello" << std::endl;
 	}
 
-	if(edit("c_error", "c", "error")) {
+	if (edit("c_error", "c", "error")) {
 		std::cout << "OK error" << std::endl;
 	}
 
-	if(edit("c_timelimit", "c", "main(){while(1);}")) {
+	if (edit("c_timelimit", "c", "main(){while(1);}")) {
 		std::cout << "OK" << std::endl;
 	}
 	*/
